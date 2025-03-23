@@ -1,250 +1,232 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Juego de Cálculo Progresivo</title>
-    <style>
-        body {
-            background-color: lightblue;
-            font-family: "Comic Sans MS", cursive, sans-serif;
-            text-align: center;
-            padding: 20px;
-        }
-        #game-container {
-            max-width: 600px;
-            margin: auto;
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        }
-        #problem {
-            font-size: 2em;
-            margin: 20px;
-        }
-        #score, #timer {
-            font-size: 1.5em;
-            margin: 10px;
-        }
-        #answer {
-            font-size: 1.5em;
-            padding: 5px;
-            width: 100px;
-            text-align: center;
-        }
-        #verify-button {
-            font-size: 1.5em;
-            padding: 5px 10px;
-            background-color: yellow;
-            border: none;
-            cursor: pointer;
-        }
-        #instructions {
-            font-size: 1.2em;
-            margin-bottom: 20px;
-        }
-        #message {
-            font-size: 1.5em;
-            margin-top: 20px;
-            color: red;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Juego de Cálculo Progresivo</title>
+  <style>
+    body {
+      background-color: lightblue;
+      font-family: "Comic Sans MS", cursive, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #game-container {
+      max-width: 600px;
+      margin: auto;
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    #problem {
+      font-size: 2em;
+      margin: 20px;
+    }
+    #score, #timer {
+      font-size: 1.5em;
+      margin: 10px;
+    }
+    #answer {
+      font-size: 1.5em;
+      padding: 5px;
+      width: 100px;
+      text-align: center;
+    }
+    #verify-button {
+      font-size: 1.5em;
+      padding: 5px 10px;
+      background-color: yellow;
+      border: none;
+      cursor: pointer;
+    }
+    #instructions {
+      font-size: 1.2em;
+      margin-bottom: 20px;
+    }
+    #message {
+      font-size: 1.5em;
+      margin-top: 20px;
+      color: red;
+    }
+  </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="instructions">
-            ¡Bienvenido! Comienza con operaciones de 1 dígito y avanza a cálculos más grandes a medida que aciertes.
-        </div>
-        <div id="problem">Cargando...</div>
-        <input type="number" id="answer" placeholder="Respuesta" />
-        <br><br>
-        <button id="verify-button">Verificar</button>
-        <div id="score">Aciertos: 0</div>
-        <div id="timer">Tiempo restante: 120.0 s</div>
-        <div id="message"></div>
+  <div id="game-container">
+    <div id="instructions">
+      ¡Bienvenido! Comienza con operaciones de 1 dígito y avanza a cálculos más grandes a medida que aciertes.
     </div>
+    <div id="problem">Cargando...</div>
+    <input type="number" id="answer" placeholder="Respuesta" />
+    <br><br>
+    <button id="verify-button">Verificar</button>
+    <div id="score">Aciertos: 0</div>
+    <div id="timer">Tiempo restante: 120.0 s</div>
+    <div id="message"></div>
+  </div>
 
-    <script>
-        // =========================
-        //   VARIABLES GLOBALES
-        // =========================
-        let score = 0;               // Aciertos correctos
-        let timeRemaining = 240.0;   // 4 minutos
-        const dt = 0.1;              // Intervalo de actualización (segundos)
-        const speedFactor = 0;    // Si NO quieres que se acelere el tiempo con cada acierto, pon 0
-        let currentAnswer = NULL;    // Respuesta correcta del problema actual
+  <script>
+    // =========================
+    //   VARIABLES GLOBALES
+    // =========================
+    let score = 0;               // Aciertos correctos
+    let timeRemaining = 120.0;   // Tiempo total: 2 minutos
+    const dt = 0.1;              // Intervalo de actualización (segundos)
+    const speedFactor = 0.00;    // Si no se desea acelerar el tiempo, mantenemos 0
+    let currentAnswer = null;    // Respuesta correcta del problema actual
 
-        // Nivel actual (empieza en 1 dígito).
-        // Sube de nivel cada 10 aciertos: nivel = floor(score / 10) + 1
-        let level = 1;
+    // Nivel actual: comienza con cálculos de 1 dígito y sube de nivel cada 10 aciertos
+    let level = 1;
 
-        // =========================
-        //   OBTENER RANGO POR NIVEL
-        // =========================
-        // Nivel 1: 0..9
-        // Nivel 2: 10..99
-        // Nivel 3: 100..999
-        // etc.
-        function getRangeForLevel(lvl) {
-            if (lvl === 1) {
-                return {min: 0, max: 9};
-            } else {
-                const min = Math.pow(10, (lvl - 1));
-                const max = Math.pow(10, lvl) - 1;
-                return {min, max};
-            }
+    // =========================
+    //   OBTENER RANGO POR NIVEL
+    // =========================
+    // Nivel 1: 0 a 9
+    // Nivel 2: 10 a 99
+    // Nivel 3: 100 a 999, etc.
+    function getRangeForLevel(lvl) {
+      if (lvl === 1) {
+        return { min: 0, max: 9 };
+      } else {
+        const min = Math.pow(10, lvl - 1);
+        const max = Math.pow(10, lvl) - 1;
+        return { min, max };
+      }
+    }
+
+    // =========================
+    //   FUNCIONES AUXILIARES
+    // =========================
+    function getRandomInt(min, max) {
+      // Retorna un entero aleatorio entre min y max (incluidos)
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function updateLevel() {
+      // Sube de nivel cada 10 aciertos
+      level = Math.floor(score / 10) + 1;
+    }
+
+    // =========================
+    //   GENERACIÓN DE PROBLEMAS
+    // =========================
+    function generarProblema() {
+      const rango = getRangeForLevel(level);
+      const minA = rango.min;
+      const maxA = rango.max;
+      const minB = rango.min;
+      const maxB = rango.max;
+
+      const operaciones = ["+", "-", "*", "/"];
+      const operacion = operaciones[getRandomInt(0, operaciones.length - 1)];
+
+      let a, b, resultado;
+
+      if (operacion === "+") {
+        a = getRandomInt(minA, maxA);
+        b = getRandomInt(minB, maxB);
+        resultado = a + b;
+      } else if (operacion === "-") {
+        a = getRandomInt(minA, maxA);
+        b = getRandomInt(minB, maxB);
+        if (b > a) { // Evitar resultados negativos
+          [a, b] = [b, a];
         }
-
-        // =========================
-        //   FUNCIONES AUXILIARES
-        // =========================
-        function getRandomInt(min, max) {
-            // Retorna un entero aleatorio entre min y max (incluidos)
-            return Math.floor(Math.random() * (max - min + 1)) + min;
+        resultado = a - b;
+      } else if (operacion === "*") {
+        a = getRandomInt(minA, maxA);
+        b = getRandomInt(minB, maxB);
+        resultado = a * b;
+      } else if (operacion === "/") {
+        b = getRandomInt(1, maxB);  // b no puede ser 0
+        let posibleRes = getRandomInt(minA, maxA);
+        a = b * posibleRes;
+        // Si a excede el rango, se ajusta
+        if (a > maxA) {
+          a = maxA;
+          posibleRes = Math.floor(a / b);
         }
+        resultado = a / b;
+      }
 
-        function updateLevel() {
-            // Cada 15 aciertos, subimos un nivel
-            level = Math.floor(score / 15) + 1;
-        }
+      return { problema: `${a} ${operacion} ${b} = ?`, resultado };
+    }
 
-        // =========================
-        //   GENERACIÓN DE PROBLEMAS
-        // =========================
-        function generarProblema() {
-            // Determina el rango según el nivel actual
-            const rango = getRangeForLevel(level);
-            const minA = rango.min;
-            const maxA = rango.max;
-            const minB = rango.min;
-            const maxB = rango.max;
+    // =========================
+    //   MANEJO DE LA INTERFAZ
+    // =========================
+    const problemEl = document.getElementById("problem");
+    const scoreEl = document.getElementById("score");
+    const timerEl = document.getElementById("timer");
+    const answerEl = document.getElementById("answer");
+    const messageEl = document.getElementById("message");
+    const verifyButton = document.getElementById("verify-button");
 
-            // Escoge aleatoriamente la operación
-            const operaciones = ["+", "-", "*", "/"];
-            const operacion = operaciones[getRandomInt(0, operaciones.length - 1)];
+    function nuevaPregunta() {
+      updateLevel(); // Actualiza el nivel en función de los aciertos
+      const nuevo = generarProblema();
+      currentAnswer = nuevo.resultado;
+      problemEl.textContent = nuevo.problema;
+      answerEl.value = "";
+    }
 
-            let a, b, resultado;
-
-            if (operacion === "+") {
-                a = getRandomInt(minA, maxA);
-                b = getRandomInt(minB, maxB);
-                resultado = a + b;
-            } 
-            else if (operacion === "-") {
-                // Evita resultados negativos: si b > a, los intercambiamos
-                a = getRandomInt(minA, maxA);
-                b = getRandomInt(minB, maxB);
-                if (b > a) {
-                    [a, b] = [b, a]; // swap
-                }
-                resultado = a - b;
-            } 
-            else if (operacion === "*") {
-                a = getRandomInt(minA, maxA);
-                b = getRandomInt(minB, maxB);
-                resultado = a * b;
-            } 
-            else if (operacion === "/") {
-                // Asegura división entera
-                // 1) Escogemos b distinto de 0
-                b = getRandomInt(1, maxB);
-                // 2) Escogemos resultado dentro del rango
-                let posibleRes = getRandomInt(minA, maxA);
-                // 3) a = b * posibleRes
-                a = b * posibleRes;
-
-                // Ajuste para no exceder el rango
-                // Si 'a' supera maxA, repetimos la generación
-                // (básicamente un bucle de "retry" si se quiere ser estricto)
-                // Pero para simplificar, forzamos un tope:
-                if (a > maxA) {
-                    a = maxA;
-                    posibleRes = Math.floor(a / b); // ajusta la división
-                }
-                resultado = a / b;
-            }
-
-            return { problema: `${a} ${operacion} ${b} = ?`, resultado };
-        }
-
-        // =========================
-        //   MANEJO DE LA INTERFAZ
-        // =========================
-        const problemEl     = document.getElementById("problem");
-        const scoreEl       = document.getElementById("score");
-        const timerEl       = document.getElementById("timer");
-        const answerEl      = document.getElementById("answer");
-        const messageEl     = document.getElementById("message");
-        const verifyButton  = document.getElementById("verify-button");
-
-        function nuevaPregunta() {
-            updateLevel(); // Actualiza el nivel en función del score
-            const nuevo = generarProblema();
-            currentAnswer = nuevo.resultado;
-            problemEl.textContent = nuevo.problema;
-            answerEl.value = "";
-        }
-
-        function verificarRespuesta() {
-    const respuestaUsuario = parseFloat(answerEl.value);
-    if (isNaN(respuestaUsuario)) {
+    // Función para verificar la respuesta y mostrar retroalimentación
+    function verificarRespuesta() {
+      const respuestaUsuario = parseFloat(answerEl.value);
+      if (isNaN(respuestaUsuario)) {
         answerEl.value = "";
         return;
-    }
-    if (Math.abs(respuestaUsuario - currentAnswer) < 1e-5) {
+      }
+      if (Math.abs(respuestaUsuario - currentAnswer) < 1e-5) {
         score++;
         scoreEl.textContent = "Aciertos: " + score;
         messageEl.textContent = "¡Correcto!";
-        // Se genera la nueva pregunta después de 1 segundo
+        // Se borra el mensaje y se genera la siguiente pregunta tras 1 segundo
         setTimeout(() => {
-            messageEl.textContent = "";
-            nuevaPregunta();
+          messageEl.textContent = "";
+          nuevaPregunta();
         }, 1000);
-    } else {
+      } else {
         messageEl.textContent = "Incorrecto. La respuesta correcta es: " + currentAnswer;
-        // Se muestra la respuesta correcta por 2 segundos y luego se genera una nueva pregunta
+        // Se muestra la respuesta correcta por 2 segundos y luego se genera la siguiente pregunta
         setTimeout(() => {
-            messageEl.textContent = "";
-            nuevaPregunta();
+          messageEl.textContent = "";
+          nuevaPregunta();
         }, 2000);
+      }
     }
-}
 
-            nuevaPregunta();
+    function actualizarTemporizador() {
+      if (timeRemaining > 0) {
+        const decremento = dt * (1 + score * speedFactor);
+        timeRemaining -= decremento;
+        if (timeRemaining < 0) {
+          timeRemaining = 0;
         }
+        timerEl.textContent = "Tiempo restante: " + timeRemaining.toFixed(1) + " s";
+        setTimeout(actualizarTemporizador, dt * 1000);
+      } else {
+        messageEl.textContent = "¡Tiempo terminado!";
+        answerEl.disabled = true;
+        verifyButton.disabled = true;
+      }
+    }
 
-        function actualizarTemporizador() {
-            if (timeRemaining > 0) {
-                // Si no quieres acelerar el tiempo con cada acierto, 
-                // pon speedFactor = 0 o elimina la siguiente línea
-                const decremento = dt * (1 + score * speedFactor);
-                timeRemaining -= decremento;
-                if (timeRemaining < 0) {
-                    timeRemaining = 0;
-                }
-                timerEl.textContent = "Tiempo restante: " + timeRemaining.toFixed(1) + " s";
-                setTimeout(actualizarTemporizador, dt * 1000);
-            } else {
-                messageEl.textContent = "¡Tiempo terminado!";
-                answerEl.disabled = true;
-                verifyButton.disabled = true;
-            }
-        }
+    // =========================
+    //      EVENTOS
+    // =========================
+    answerEl.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        verificarRespuesta();
+      }
+    });
+    verifyButton.addEventListener("click", verificarRespuesta);
 
-        // =========================
-        //    EVENTOS E INICIO
-        // =========================
-        answerEl.addEventListener("keydown", function(e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                verificarRespuesta();
-            }
-        });
-        verifyButton.addEventListener("click", verificarRespuesta);
-
-        // Iniciamos el juego
-        nuevaPregunta();
-        actualizarTemporizador();
-    </script>
+    // =========================
+    //      INICIO DEL JUEGO
+    // =========================
+    nuevaPregunta();
+    actualizarTemporizador();
+  </script>
 </body>
 </html>
