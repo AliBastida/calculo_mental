@@ -148,14 +148,21 @@ def actualizar_temporizador():
         document.getElementById("answer").disabled = True
         document.getElementById("verify-button").disabled = True
 
+def on_keydown(event):
+    """
+    Manejador para el evento keydown que verifica si se presionó Enter.
+    """
+    if event.key == "Enter":
+        event.preventDefault()  # Evita acciones por defecto
+        verificar_respuesta()
+
 # Inicialización
 nueva_pregunta()
 actualizar_temporizador()
 
 # Eventos para el botón y la tecla Enter
 document.getElementById("verify-button").addEventListener("click", verificar_respuesta)
-document.getElementById("answer").addEventListener("keydown", lambda event: verificar_respuesta() if event.key == "Enter" else None)
+document.getElementById("answer").addEventListener("keydown", on_keydown)
     </py-script>
 </body>
 </html>
-
