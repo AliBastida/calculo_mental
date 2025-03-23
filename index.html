@@ -186,15 +186,30 @@
         }
 
         function verificarRespuesta() {
-            const respuestaUsuario = parseFloat(answerEl.value);
-            if (isNaN(respuestaUsuario)) {
-                answerEl.value = "";
-                return;
-            }
-            if (Math.abs(respuestaUsuario - currentAnswer) < 1e-5) {
-                score++;
-                scoreEl.textContent = "Aciertos: " + score;
-            }
+    const respuestaUsuario = parseFloat(answerEl.value);
+    if (isNaN(respuestaUsuario)) {
+        answerEl.value = "";
+        return;
+    }
+    if (Math.abs(respuestaUsuario - currentAnswer) < 1e-5) {
+        score++;
+        scoreEl.textContent = "Aciertos: " + score;
+        messageEl.textContent = "¡Correcto!";
+        // Se genera la nueva pregunta después de 1 segundo
+        setTimeout(() => {
+            messageEl.textContent = "";
+            nuevaPregunta();
+        }, 1000);
+    } else {
+        messageEl.textContent = "Incorrecto. La respuesta correcta es: " + currentAnswer;
+        // Se muestra la respuesta correcta por 2 segundos y luego se genera una nueva pregunta
+        setTimeout(() => {
+            messageEl.textContent = "";
+            nuevaPregunta();
+        }, 2000);
+    }
+}
+
             nuevaPregunta();
         }
 
