@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Juego de Cálculo Divertido</title>
+    <title>Juego de Cálculo Progresivo</title>
     <style>
         body {
             background-color: lightblue;
@@ -53,7 +53,7 @@
 <body>
     <div id="game-container">
         <div id="instructions">
-            ¡Bienvenido! Resuelve las operaciones lo más rápido que puedas.
+            ¡Bienvenido! Comienza con operaciones de 1 dígito y avanza a cálculos más grandes a medida que aciertes.
         </div>
         <div id="problem">Cargando...</div>
         <input type="number" id="answer" placeholder="Respuesta" />
@@ -68,59 +68,58 @@
         // =========================
         //   VARIABLES GLOBALES
         // =========================
-        let score = 0;               // Número de respuestas correctas
-        let attempts = 0;            // Número total de intentos (correctos o incorrectos)
-        let timeRemaining = 120.0;   // Tiempo inicial: 2 minutos (120 s)
-        const dt = 0.1;              // Intervalo de actualización (en segundos)
-        const speedFactor = 0.05;    // Factor de aceleración por acierto (opcional)
+        let score = 0;               // Aciertos correctos
+        let timeRemaining = 120.0;   // 2 minutos
+        const dt = 0.1;              // Intervalo de actualización (segundos)
+        const speedFactor = 0.00;    // Si NO quieres que se acelere el tiempo con cada acierto, pon 0
         let currentAnswer = null;    // Respuesta correcta del problema actual
-        let twoDigitMode = false;    // Indica si ya pasamos a números de dos cifras
 
-        // Elementos de la interfaz
-        const problemEl     = document.getElementById("problem");
-        const scoreEl       = document.getElementById("score");
-        const timerEl       = document.getElementById("timer");
-        const answerEl      = document.getElementById("answer");
-        const messageEl     = document.getElementById("message");
-        const verifyButton  = document.getElementById("verify-button");
+        // Nivel actual (empieza en 1 dígito).
+        // Sube de nivel cada 10 aciertos: nivel = floor(score / 10) + 1
+        let level = 1;
 
         // =========================
-        //  FUNCIONES AUXILIARES
+        //   OBTENER RANGO POR NIVEL
         // =========================
+        // Nivel 1: 0..9
+        // Nivel 2: 10..99
+        // Nivel 3: 100..999
+        // etc.
+        function getRangeForLevel(lvl) {
+            if (lvl === 1) {
+                return {min: 0, max: 9};
+            } else {
+                const min = Math.pow(10, (lvl - 1));
+                const max = Math.pow(10, lvl) - 1;
+                return {min, max};
+            }
+        }
 
-        // Retorna un entero aleatorio entre min y max (incluyendo min y max)
+        // =========================
+        //   FUNCIONES AUXILIARES
+        // =========================
         function getRandomInt(min, max) {
+            // Retorna un entero aleatorio entre min y max (incluidos)
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // Calcula el porcentaje de aciertos y activa el modo de dos cifras si >= 90%
-        function checkAccuracy() {
-            if (attempts === 0) return;
-            const accuracy = (score / attempts) * 100;
-            // Si tiene al menos 5 intentos y el 90% de aciertos, activamos modo dos cifras
-            if (accuracy >= 90 && attempts >= 5) {
-                twoDigitMode = true;
-            }
+        function updateLevel() {
+            // Cada 10 aciertos, subimos un nivel
+            level = Math.floor(score / 10) + 1;
         }
 
         // =========================
         //   GENERACIÓN DE PROBLEMAS
         // =========================
         function generarProblema() {
-            // Definimos los rangos para una o dos cifras según el modo
-            let minA, maxA, minB, maxB;
-            if (twoDigitMode) {
-                // Modo dos cifras
-                minA = 10; maxA = 99;
-                minB = 10; maxB = 99;
-            } else {
-                // Modo normal (una cifra o rango pequeño)
-                // Sumas y restas hasta 20, multiplicación hasta 10, etc.
-                // (Haremos un rango uniforme para simplificar)
-                minA = 0; maxA = 20;
-                minB = 0; maxB = 20;
-            }
+            // Determina el rango según el nivel actual
+            const rango = getRangeForLevel(level);
+            const minA = rango.min;
+            const maxA = rango.max;
+            const minB = rango.min;
+            const maxB = rango.max;
 
+            // Escoge aleatoriamente la operación
             const operaciones = ["+", "-", "*", "/"];
             const operacion = operaciones[getRandomInt(0, operaciones.length - 1)];
 
@@ -130,32 +129,56 @@
                 a = getRandomInt(minA, maxA);
                 b = getRandomInt(minB, maxB);
                 resultado = a + b;
-            } else if (operacion === "-") {
-                // Para evitar resultados negativos, aseguramos que b <= a
+            } 
+            else if (operacion === "-") {
+                // Evita resultados negativos: si b > a, los intercambiamos
                 a = getRandomInt(minA, maxA);
-                b = getRandomInt(minB, a);
+                b = getRandomInt(minB, maxB);
+                if (b > a) {
+                    [a, b] = [b, a]; // swap
+                }
                 resultado = a - b;
-            } else if (operacion === "*") {
-                // Ajustamos multiplicaciones
-                // En modo dos cifras, será 10..99 * 10..99
-                // (lo cual puede ser bastante grande)
+            } 
+            else if (operacion === "*") {
                 a = getRandomInt(minA, maxA);
                 b = getRandomInt(minB, maxB);
                 resultado = a * b;
-            } else if (operacion === "/") {
-                // Aseguramos división exacta
-                b = getRandomInt(1, maxB);  // evitamos división por 0
-                resultado = getRandomInt(minA, maxA);
-                a = b * resultado;  // así garantizamos a / b = resultado exacto
+            } 
+            else if (operacion === "/") {
+                // Asegura división entera
+                // 1) Escogemos b distinto de 0
+                b = getRandomInt(1, maxB);
+                // 2) Escogemos resultado dentro del rango
+                let posibleRes = getRandomInt(minA, maxA);
+                // 3) a = b * posibleRes
+                a = b * posibleRes;
+
+                // Ajuste para no exceder el rango
+                // Si 'a' supera maxA, repetimos la generación
+                // (básicamente un bucle de "retry" si se quiere ser estricto)
+                // Pero para simplificar, forzamos un tope:
+                if (a > maxA) {
+                    a = maxA;
+                    posibleRes = Math.floor(a / b); // ajusta la división
+                }
+                resultado = a / b;
             }
 
             return { problema: `${a} ${operacion} ${b} = ?`, resultado };
         }
 
         // =========================
-        //  ACTUALIZACIÓN DE INTERFAZ
+        //   MANEJO DE LA INTERFAZ
         // =========================
+        const problemEl     = document.getElementById("problem");
+        const scoreEl       = document.getElementById("score");
+        const timerEl       = document.getElementById("timer");
+        const answerEl      = document.getElementById("answer");
+        const messageEl     = document.getElementById("message");
+        const verifyButton  = document.getElementById("verify-button");
+
         function nuevaPregunta() {
+            updateLevel(); // Actualiza el nivel en función del score
             const nuevo = generarProblema();
             currentAnswer = nuevo.resultado;
             problemEl.textContent = nuevo.problema;
@@ -163,28 +186,22 @@
         }
 
         function verificarRespuesta() {
-            // Cada intento cuenta, sea correcto o no
-            attempts++;
             const respuestaUsuario = parseFloat(answerEl.value);
             if (isNaN(respuestaUsuario)) {
                 answerEl.value = "";
                 return;
             }
-            // Comprobamos si la respuesta es correcta
             if (Math.abs(respuestaUsuario - currentAnswer) < 1e-5) {
                 score++;
                 scoreEl.textContent = "Aciertos: " + score;
             }
-            // Revisamos el porcentaje de aciertos para cambiar a dos cifras si procede
-            checkAccuracy();
-            // Generamos nueva pregunta
             nuevaPregunta();
         }
 
         function actualizarTemporizador() {
             if (timeRemaining > 0) {
-                // Si quieres mantener la aceleración, la dejamos
-                // (Puedes eliminarla si no quieres que el tiempo se acelere)
+                // Si no quieres acelerar el tiempo con cada acierto, 
+                // pon speedFactor = 0 o elimina la siguiente línea
                 const decremento = dt * (1 + score * speedFactor);
                 timeRemaining -= decremento;
                 if (timeRemaining < 0) {
