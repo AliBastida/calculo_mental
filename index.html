@@ -69,10 +69,10 @@
         //   VARIABLES GLOBALES
         // =========================
         let score = 0;               // Aciertos correctos
-        let timeRemaining = 120.0;   // 2 minutos
+        let timeRemaining = 240.0;   // 4 minutos
         const dt = 0.1;              // Intervalo de actualización (segundos)
-        const speedFactor = 0.00;    // Si NO quieres que se acelere el tiempo con cada acierto, pon 0
-        let currentAnswer = null;    // Respuesta correcta del problema actual
+        const speedFactor = 0;    // Si NO quieres que se acelere el tiempo con cada acierto, pon 0
+        let currentAnswer = NULL;    // Respuesta correcta del problema actual
 
         // Nivel actual (empieza en 1 dígito).
         // Sube de nivel cada 10 aciertos: nivel = floor(score / 10) + 1
@@ -104,8 +104,8 @@
         }
 
         function updateLevel() {
-            // Cada 10 aciertos, subimos un nivel
-            level = Math.floor(score / 10) + 1;
+            // Cada 15 aciertos, subimos un nivel
+            level = Math.floor(score / 15) + 1;
         }
 
         // =========================
