@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Juego de Cálculo Divertido</title>
-    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
     <style>
         body {
             background-color: lightblue;
@@ -66,103 +64,108 @@
         <div id="message"></div>
     </div>
 
-    <py-script>
-import random
-from js import document, setTimeout
+    <script>
+        // Variables globales
+        let score = 0;
+        let timeRemaining = 30.0; // Tiempo inicial en segundos
+        const dt = 0.1;           // Intervalo de actualización en segundos
+        const speedFactor = 0.05; // Factor de aceleración por cada acierto
+        let currentAnswer = null;
 
-# Variables globales
-score = 0
-time_remaining = 30.0  # Tiempo inicial en segundos
-dt = 0.1               # Intervalo de actualización en segundos
-speed_factor = 0.05    # Factor de aceleración por cada acierto
-current_answer = None  # Almacena la respuesta correcta del problema actual
+        // Elementos de la interfaz
+        const problemEl = document.getElementById("problem");
+        const scoreEl = document.getElementById("score");
+        const timerEl = document.getElementById("timer");
+        const answerEl = document.getElementById("answer");
+        const messageEl = document.getElementById("message");
+        const verifyButton = document.getElementById("verify-button");
 
-def generar_problema():
-    """
-    Genera un problema matemático aleatorio (suma, resta, multiplicación o división)
-    y retorna una tupla con la cadena del problema y la respuesta correcta.
-    Para división se asegura que el resultado sea entero.
-    """
-    operacion = random.choice(["+", "-", "*", "/"])
-    if operacion == "+":
-        a = random.randint(0, 20)
-        b = random.randint(0, 20)
-        resultado = a + b
-    elif operacion == "-":
-        a = random.randint(0, 20)
-        b = random.randint(0, a)  # Evita resultados negativos
-        resultado = a - b
-    elif operacion == "*":
-        a = random.randint(0, 10)
-        b = random.randint(0, 10)
-        resultado = a * b
-    elif operacion == "/":
-        b = random.randint(1, 10)
-        resultado = random.randint(0, 10)
-        a = b * resultado  # Asegura división exacta
-    problema = f"{a} {operacion} {b} = ?"
-    return problema, resultado
+        // Función auxiliar para generar números enteros aleatorios entre min y max
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
 
-def nueva_pregunta():
-    """
-    Genera un nuevo problema y actualiza la interfaz.
-    """
-    global current_answer
-    problema, resultado = generar_problema()
-    current_answer = resultado
-    document.getElementById("problem").innerHTML = problema
-    document.getElementById("answer").value = ""
+        // Genera un problema matemático aleatorio y devuelve un objeto con el problema y la respuesta
+        function generarProblema() {
+            const operaciones = ["+", "-", "*", "/"];
+            const operacion = operaciones[getRandomInt(0, operaciones.length - 1)];
+            let a, b, resultado;
+            if (operacion === "+") {
+                a = getRandomInt(0, 20);
+                b = getRandomInt(0, 20);
+                resultado = a + b;
+            } else if (operacion === "-") {
+                a = getRandomInt(0, 20);
+                b = getRandomInt(0, a); // Evita resultados negativos
+                resultado = a - b;
+            } else if (operacion === "*") {
+                a = getRandomInt(0, 10);
+                b = getRandomInt(0, 10);
+                resultado = a * b;
+            } else if (operacion === "/") {
+                b = getRandomInt(1, 10);
+                resultado = getRandomInt(0, 10);
+                a = b * resultado; // Asegura división exacta
+            }
+            return { problema: `${a} ${operacion} ${b} = ?`, resultado: resultado };
+        }
 
-def verificar_respuesta(event=None):
-    """
-    Verifica si la respuesta ingresada es correcta.
-    Si es correcta, aumenta el puntaje y genera un nuevo problema.
-    """
-    global score
-    try:
-        respuesta_usuario = float(document.getElementById("answer").value)
-    except:
-        document.getElementById("answer").value = ""
-        return
-    if abs(respuesta_usuario - current_answer) < 1e-5:
-        score += 1
-        document.getElementById("score").innerHTML = f"Aciertos: {score}"
-        nueva_pregunta()
-    else:
-        document.getElementById("answer").value = ""
+        // Actualiza la interfaz con un nuevo problema
+        function nuevaPregunta() {
+            const nuevo = generarProblema();
+            currentAnswer = nuevo.resultado;
+            problemEl.textContent = nuevo.problema;
+            answerEl.value = "";
+        }
 
-def actualizar_temporizador():
-    """
-    Actualiza el temporizador y acelera el paso del tiempo conforme se acumulan aciertos.
-    """
-    global time_remaining
-    if time_remaining > 0:
-        decremento = dt * (1 + score * speed_factor)
-        time_remaining -= decremento
-        if time_remaining < 0:
-            time_remaining = 0
-        document.getElementById("timer").innerHTML = f"Tiempo restante: {time_remaining:.1f} s"
-        setTimeout(actualizar_temporizador, int(dt * 1000))
-    else:
-        document.getElementById("message").innerHTML = "¡Tiempo terminado!"
-        document.getElementById("answer").disabled = True
-        document.getElementById("verify-button").disabled = True
+        // Verifica la respuesta ingresada
+        function verificarRespuesta() {
+            const respuestaUsuario = parseFloat(answerEl.value);
+            if (isNaN(respuestaUsuario)) {
+                answerEl.value = "";
+                return;
+            }
+            if (Math.abs(respuestaUsuario - currentAnswer) < 1e-5) {
+                score++;
+                scoreEl.textContent = "Aciertos: " + score;
+                nuevaPregunta();
+            } else {
+                answerEl.value = "";
+            }
+        }
 
-def on_keydown(event):
-    """
-    Manejador para el evento keydown que verifica si se presionó Enter.
-    """
-    if event.key == "Enter":
-        event.preventDefault()  # Evita acciones por defecto
-        verificar_respuesta()
+        // Actualiza el temporizador y acelera el juego conforme se acumulan aciertos
+        function actualizarTemporizador() {
+            if (timeRemaining > 0) {
+                const decremento = dt * (1 + score * speedFactor);
+                timeRemaining -= decremento;
+                if (timeRemaining < 0) {
+                    timeRemaining = 0;
+                }
+                timerEl.textContent = "Tiempo restante: " + timeRemaining.toFixed(1) + " s";
+                setTimeout(actualizarTemporizador, dt * 1000);
+            } else {
+                messageEl.textContent = "¡Tiempo terminado!";
+                answerEl.disabled = true;
+                verifyButton.disabled = true;
+            }
+        }
 
-# Inicialización
-nueva_pregunta()
-actualizar_temporizador()
+        // Maneja el evento de pulsar Enter en el campo de respuesta
+        answerEl.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                verificarRespuesta();
+            }
+        });
 
-# Eventos para el botón y la tecla Enter
-document.getElementById("verify-button").addEventListener("click", verificar_respuesta)
-document.getElementById("answer").addEventListener("keydown", on_keydown)
-    </py-script>
+        // Evento para el botón de verificación
+        verifyButton.addEventListener("click", verificarRespuesta);
+
+        // Inicialización
+        nuevaPregunta();
+        actualizarTemporizador();
+    </script>
 </body>
 </html>
+
