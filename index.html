@@ -60,57 +60,101 @@
         <br><br>
         <button id="verify-button">Verificar</button>
         <div id="score">Aciertos: 0</div>
-        <div id="timer">Tiempo restante: 30.0 s</div>
+        <div id="timer">Tiempo restante: 120.0 s</div>
         <div id="message"></div>
     </div>
 
     <script>
-        // Variables globales
-        let score = 0;
-        let timeRemaining = 30.0; // Tiempo inicial en segundos
-        const dt = 0.1;           // Intervalo de actualización en segundos
-        const speedFactor = 0.05; // Factor de aceleración por cada acierto
-        let currentAnswer = null;
+        // =========================
+        //   VARIABLES GLOBALES
+        // =========================
+        let score = 0;               // Número de respuestas correctas
+        let attempts = 0;            // Número total de intentos (correctos o incorrectos)
+        let timeRemaining = 120.0;   // Tiempo inicial: 2 minutos (120 s)
+        const dt = 0.1;              // Intervalo de actualización (en segundos)
+        const speedFactor = 0.05;    // Factor de aceleración por acierto (opcional)
+        let currentAnswer = null;    // Respuesta correcta del problema actual
+        let twoDigitMode = false;    // Indica si ya pasamos a números de dos cifras
 
         // Elementos de la interfaz
-        const problemEl = document.getElementById("problem");
-        const scoreEl = document.getElementById("score");
-        const timerEl = document.getElementById("timer");
-        const answerEl = document.getElementById("answer");
-        const messageEl = document.getElementById("message");
-        const verifyButton = document.getElementById("verify-button");
+        const problemEl     = document.getElementById("problem");
+        const scoreEl       = document.getElementById("score");
+        const timerEl       = document.getElementById("timer");
+        const answerEl      = document.getElementById("answer");
+        const messageEl     = document.getElementById("message");
+        const verifyButton  = document.getElementById("verify-button");
 
-        // Función auxiliar para generar números enteros aleatorios entre min y max
+        // =========================
+        //  FUNCIONES AUXILIARES
+        // =========================
+
+        // Retorna un entero aleatorio entre min y max (incluyendo min y max)
         function getRandomInt(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // Genera un problema matemático aleatorio y devuelve un objeto con el problema y la respuesta
-        function generarProblema() {
-            const operaciones = ["+", "-", "*", "/"];
-            const operacion = operaciones[getRandomInt(0, operaciones.length - 1)];
-            let a, b, resultado;
-            if (operacion === "+") {
-                a = getRandomInt(0, 20);
-                b = getRandomInt(0, 20);
-                resultado = a + b;
-            } else if (operacion === "-") {
-                a = getRandomInt(0, 20);
-                b = getRandomInt(0, a); // Evita resultados negativos
-                resultado = a - b;
-            } else if (operacion === "*") {
-                a = getRandomInt(0, 10);
-                b = getRandomInt(0, 10);
-                resultado = a * b;
-            } else if (operacion === "/") {
-                b = getRandomInt(1, 10);
-                resultado = getRandomInt(0, 10);
-                a = b * resultado; // Asegura división exacta
+        // Calcula el porcentaje de aciertos y activa el modo de dos cifras si >= 90%
+        function checkAccuracy() {
+            if (attempts === 0) return;
+            const accuracy = (score / attempts) * 100;
+            // Si tiene al menos 5 intentos y el 90% de aciertos, activamos modo dos cifras
+            if (accuracy >= 90 && attempts >= 5) {
+                twoDigitMode = true;
             }
-            return { problema: `${a} ${operacion} ${b} = ?`, resultado: resultado };
         }
 
-        // Actualiza la interfaz con un nuevo problema
+        // =========================
+        //   GENERACIÓN DE PROBLEMAS
+        // =========================
+        function generarProblema() {
+            // Definimos los rangos para una o dos cifras según el modo
+            let minA, maxA, minB, maxB;
+            if (twoDigitMode) {
+                // Modo dos cifras
+                minA = 10; maxA = 99;
+                minB = 10; maxB = 99;
+            } else {
+                // Modo normal (una cifra o rango pequeño)
+                // Sumas y restas hasta 20, multiplicación hasta 10, etc.
+                // (Haremos un rango uniforme para simplificar)
+                minA = 0; maxA = 20;
+                minB = 0; maxB = 20;
+            }
+
+            const operaciones = ["+", "-", "*", "/"];
+            const operacion = operaciones[getRandomInt(0, operaciones.length - 1)];
+
+            let a, b, resultado;
+
+            if (operacion === "+") {
+                a = getRandomInt(minA, maxA);
+                b = getRandomInt(minB, maxB);
+                resultado = a + b;
+            } else if (operacion === "-") {
+                // Para evitar resultados negativos, aseguramos que b <= a
+                a = getRandomInt(minA, maxA);
+                b = getRandomInt(minB, a);
+                resultado = a - b;
+            } else if (operacion === "*") {
+                // Ajustamos multiplicaciones
+                // En modo dos cifras, será 10..99 * 10..99
+                // (lo cual puede ser bastante grande)
+                a = getRandomInt(minA, maxA);
+                b = getRandomInt(minB, maxB);
+                resultado = a * b;
+            } else if (operacion === "/") {
+                // Aseguramos división exacta
+                b = getRandomInt(1, maxB);  // evitamos división por 0
+                resultado = getRandomInt(minA, maxA);
+                a = b * resultado;  // así garantizamos a / b = resultado exacto
+            }
+
+            return { problema: `${a} ${operacion} ${b} = ?`, resultado };
+        }
+
+        // =========================
+        //  ACTUALIZACIÓN DE INTERFAZ
+        // =========================
         function nuevaPregunta() {
             const nuevo = generarProblema();
             currentAnswer = nuevo.resultado;
@@ -118,25 +162,29 @@
             answerEl.value = "";
         }
 
-        // Verifica la respuesta ingresada
         function verificarRespuesta() {
+            // Cada intento cuenta, sea correcto o no
+            attempts++;
             const respuestaUsuario = parseFloat(answerEl.value);
             if (isNaN(respuestaUsuario)) {
                 answerEl.value = "";
                 return;
             }
+            // Comprobamos si la respuesta es correcta
             if (Math.abs(respuestaUsuario - currentAnswer) < 1e-5) {
                 score++;
                 scoreEl.textContent = "Aciertos: " + score;
-                nuevaPregunta();
-            } else {
-                answerEl.value = "";
             }
+            // Revisamos el porcentaje de aciertos para cambiar a dos cifras si procede
+            checkAccuracy();
+            // Generamos nueva pregunta
+            nuevaPregunta();
         }
 
-        // Actualiza el temporizador y acelera el juego conforme se acumulan aciertos
         function actualizarTemporizador() {
             if (timeRemaining > 0) {
+                // Si quieres mantener la aceleración, la dejamos
+                // (Puedes eliminarla si no quieres que el tiempo se acelere)
                 const decremento = dt * (1 + score * speedFactor);
                 timeRemaining -= decremento;
                 if (timeRemaining < 0) {
@@ -151,18 +199,18 @@
             }
         }
 
-        // Maneja el evento de pulsar Enter en el campo de respuesta
+        // =========================
+        //    EVENTOS E INICIO
+        // =========================
         answerEl.addEventListener("keydown", function(e) {
             if (e.key === "Enter") {
                 e.preventDefault();
                 verificarRespuesta();
             }
         });
-
-        // Evento para el botón de verificación
         verifyButton.addEventListener("click", verificarRespuesta);
 
-        // Inicialización
+        // Iniciamos el juego
         nuevaPregunta();
         actualizarTemporizador();
     </script>
